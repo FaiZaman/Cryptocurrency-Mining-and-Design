@@ -1,7 +1,6 @@
 import hashlib
 import json
-import random
-import sys
+import time
 
 # A block header - do not change any fields except nonce and coinbase_addr
 block_header = {'height': 1478503,
@@ -25,7 +24,7 @@ block_header = {'height': 1478503,
 # (65535 * 100) -> hex = new difficulty (0.001)
 difficulty = "00000000FFFF0000000000000000000000000000000000000000000000000000"
 new_diffic = "000003E7FC180000000000000000000000000000000000000000000000000000"     # 22 leading
-max_size = sys.maxsize
+target_zeroes = 22
 
 # Simplified conversion of block header into bytes:
 #block_serialised = json.dumps(block_header, sort_keys=True).encode()
@@ -34,6 +33,8 @@ max_size = sys.maxsize
 #block_hash = hashlib.sha256(hashlib.sha256(block_serialised).digest()).hexdigest()
 #print('Hash with nonce ' + str(block_header['nonce']) + ': ' + block_hash)
 
+
+# calculates the number of leading zeroes in a given hexadecimal string
 def get_leading_zeros(hex):
 
     zeroes = 0
@@ -52,17 +53,30 @@ def get_leading_zeros(hex):
                 else:
                     return zeroes
 
+nonce = 0
+
+start = time.time()
+
+# loop and try hashing nonces in increasing order (1, 2, 3, ...)
 while True:
 
-    rand = random.randint(0, max_size)
-    block_header['nonce'] = rand
+    block_header['nonce'] = nonce
 
     block_serialised = json.dumps(block_header, sort_keys=True).encode()
     block_hash = hashlib.sha256(hashlib.sha256(block_serialised).digest()).hexdigest()
 
+    # compute number of leading zeroes in hash
     zeroes = get_leading_zeros(block_hash)
 
-    if zeroes > 22:     # current target
-        print(zeroes)
+    if zeroes > target_zeroes:     # current target - break if hit
+        print('Number of zeroes: ' + str(zeroes))
         print('Hash with nonce ' + str(block_header['nonce']) + ': ' + block_hash)
         break
+
+    nonce += 1
+
+# nonce: 11344153
+
+end = time.time()
+time_taken = end - start
+print('Time taken: ' + str(time_taken) + ' seconds.')
