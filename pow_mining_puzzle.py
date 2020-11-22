@@ -1,5 +1,7 @@
 import hashlib
 import json
+import random
+import sys
 
 # A block header - do not change any fields except nonce and coinbase_addr
 block_header = {'height': 1478503,
@@ -23,10 +25,44 @@ block_header = {'height': 1478503,
 # (65535 * 100) -> hex = new difficulty (0.001)
 difficulty = "00000000FFFF0000000000000000000000000000000000000000000000000000"
 new_diffic = "000003E7FC180000000000000000000000000000000000000000000000000000"     # 22 leading
+max_size = sys.maxsize
 
 # Simplified conversion of block header into bytes:
-block_serialised = json.dumps(block_header, sort_keys=True).encode()
+#block_serialised = json.dumps(block_header, sort_keys=True).encode()
 
 # Double SHA256 hashing of the serialised block
-block_hash = hashlib.sha256(hashlib.sha256(block_serialised).digest()).hexdigest()
-print('Hash with nonce ' + str(block_header['nonce']) + ': ' + block_hash)
+#block_hash = hashlib.sha256(hashlib.sha256(block_serialised).digest()).hexdigest()
+#print('Hash with nonce ' + str(block_header['nonce']) + ': ' + block_hash)
+
+def get_leading_zeros(hex):
+
+    zeroes = 0
+    scale = 16
+
+    for i in hex:
+        if i == '0':
+            zeroes += 4
+        else:
+
+            binary = bin(int(hex, scale)).zfill(4)[2:]
+
+            for j in binary:
+                if j == '0':
+                    zeroes += 1
+                else:
+                    return zeroes
+
+while True:
+
+    rand = random.randint(0, max_size)
+    block_header['nonce'] = rand
+
+    block_serialised = json.dumps(block_header, sort_keys=True).encode()
+    block_hash = hashlib.sha256(hashlib.sha256(block_serialised).digest()).hexdigest()
+
+    zeroes = get_leading_zeros(block_hash)
+
+    if zeroes > 22:     # current target
+        print(zeroes)
+        print('Hash with nonce ' + str(block_header['nonce']) + ': ' + block_hash)
+        break
