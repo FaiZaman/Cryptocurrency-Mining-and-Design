@@ -15,7 +15,8 @@ previous_block_header = {
   "nextBlock": "6910370859487179428",
   "requestProcessingTime": 0,
   "numberOfTransactions": 1,
-  "blockSignature": "0d237dadff3024928ea4e5e33613413f73191f04b25bad6b028edb97711cbd08c525c374c3e2684ce149a9abb186b784437d01e2ad13046593e0e840fd184a60",
+  "blockSignature": "0d237dadff3024928ea4e5e33613413f73191f04b25bad6b028edb97711cbd\
+                      08c525c374c3e2684ce149a9abb186b784437d01e2ad13046593e0e840fd184a60",
   "transactions": ["14074549945874501524"],
   "version": 3,
   "totalFeeNQT": "200000000",
@@ -27,6 +28,18 @@ previous_block_header = {
 }
 
 # you should edit the effective balance to be the last two digits from your user id
-effective_balance = 75
+effective_balance = 66
 
+# get signing and verifying key pair based on SECP256k1 curve used in Bitcoin
+sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+vk = sk.verifying_key
 
+# get signature for Hello World
+signature = sk.sign(b"Hello World")
+
+# convert verifying key and signature to hex
+vk_hex = vk.to_string().hex()
+signature_hex = signature.hex()
+
+print(vk_hex)
+print(signature_hex)
