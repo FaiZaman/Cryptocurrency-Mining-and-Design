@@ -35,6 +35,7 @@ effective_balance = 66
 sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
 vk = sk.verifying_key
 
+
 # signs the message 'Hello World'
 def sign_hello_world():
 
@@ -48,33 +49,39 @@ def sign_hello_world():
 	print(vk_hex)
 	print(signature_hex)
 
+	return vk_hex, signature_hex
 
-# calculate new target value T
-# T = Tb * S * Be
-# Be = effective_balance
 
-base_target = previous_block_header['baseTarget']   # Tb
+# compute the hit value
+def compute_hit_value():
 
-time_last_block_created = previous_block_header['timestamp']
-current_time = time.time()
-time_since_last_block = current_time - time_last_block_created	# S
-print(time_last_block_created, time_since_last_block)
-
-new_target = base_target * time_since_last_block * effective_balance
-
-# compute hit value
-hit_value = float('inf')
-prev_gen_sig = previous_block_header['generationSignature']
-
-print(new_target)
-while hit_value > new_target:
-
+	# sign previous block generation signature with private key
+	prev_gen_sig = previous_block_header['generationSignature']
 	mine = sk.sign(bytes.fromhex(prev_gen_sig))
+
+	# hash the result
 	total_hit_value = hashlib.sha256(hashlib.sha256(mine).digest()).hexdigest()
 
-	# take first 8 bytes and compare to target
-	real_hit_value = total_hit_value[:16]
-	hit_value = int(real_hit_value, 16)
-	print(hit_value)
+	# take the first 8 bytes and convert to integer for easy comparison against target
+	hit_value = int(total_hit_value[:16], 16)
 
-print(hit_value)
+	return hit_value
+
+
+base_target = previous_block_header['baseTarget']   # Tb
+time_since_last_block = 1
+hit_value = compute_hit_value()
+
+while True:
+
+	# calculate new target value T every second
+	# T = Tb * S * Be
+	# Be = effective_balance
+	target = base_target * time_since_last_block * effective_balance
+	if hit_value < target:
+		break
+
+	time_since_last_block += 1
+
+print(hit_value, target)
+print(time_since_last_block)
