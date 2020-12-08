@@ -51,23 +51,30 @@ def sign_hello_world():
 
 	return vk_hex, signature_hex
 
+sign_hello_world()
+
 
 # compute the hit value
 def compute_hit_value():
 
 	# sign previous block generation signature with private key
 	prev_gen_sig = previous_block_header['generationSignature']
-	mine = sk.sign(bytes.fromhex(prev_gen_sig))
+	signature = sk.sign(bytes.fromhex(prev_gen_sig))
 
+	print(signature.hex())
 	# hash the result
-	total_hit_value = hashlib.sha256(hashlib.sha256(mine).digest()).hexdigest()
+	total_hit_value = hashlib.sha256(hashlib.sha256(signature).digest()).hexdigest()
 
 	# take the first 8 bytes and convert to integer for easy comparison against target
+	hex_hit_value = total_hit_value[:16]
+	print(hex_hit_value)
+
 	hit_value = int(total_hit_value[:16], 16)
 
 	return hit_value
 
 
+# get values from previous block used to calculate new target and compute hit value
 base_target = previous_block_header['baseTarget']   # Tb
 time_since_last_block = 1
 hit_value = compute_hit_value()
