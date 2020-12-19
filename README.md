@@ -1,6 +1,6 @@
 # The project
 
-Bitcoin is mined using Proof of Work and Proof of State.
+Bitcoin is mined using Proof of Work and Proof of State. Some transactions on the blockchain are also inspected using blockcypher.
 The design of Ethereum contracts is also implemented.
 
 # Getting Started

@@ -66,7 +66,7 @@ def compute_hit_value():
 	total_hit_value = hashlib.sha256(hashlib.sha256(signature).digest()).hexdigest()
 
 	# take the first 8 bytes and convert to integer for easy comparison against target
-	hex_hit_value = total_hit_value[:16]
+	hit_value = total_hit_value[:16]
 	print(hex_hit_value)
 
 	hit_value = int(total_hit_value[:16], 16)
