@@ -7,6 +7,9 @@ import json
 # You do not need to list a change address, by default the transaction will be created with all change 
 #  (minus the fees) going to the first input address
 
+public_key = '03f2fb06f61d8dfe3451ee55a1e86578665f4d1548465d207f301865fa1be2d5df'
+private_key = '6cd46f66cc9b262adc2aa6d60666aed8271bbcd1e2b4393dbadab3fd50c18ec9'
+
 def value_transaction(val):
 
     # Transaction ID for getting 0.001 BTC from testnet:
@@ -23,8 +26,8 @@ def value_transaction(val):
     #print(json.dumps(unsigned_tx, sort_keys=True, indent=4))
 
     # Now list the private and public keys corresponding to the inputs
-    public_keys = ['03f2fb06f61d8dfe3451ee55a1e86578665f4d1548465d207f301865fa1be2d5df']
-    private_keys = ['6cd46f66cc9b262adc2aa6d60666aed8271bbcd1e2b4393dbadab3fd50c18ec9']
+    public_keys = [public_key]
+    private_keys = [private_key]
 
     # Next create the signatures
     tx_signatures = blockcypher.make_tx_signatures(txs_to_sign=unsigned_tx['tosign'],\
@@ -43,6 +46,26 @@ def value_transaction(val):
 def write_ID_transaction(ID):
 
     inputs = [{'address': 'mhihAtVZhNT13zzWA2AUyQFYtUyaunDKSp'}]
-    outputs = [{'value': 0, 'script_type': "null-data", 'script': ""}]
 
-    
+    # hex encoding of a suitable script to create a proof of burn transaction with ID on it
+    hex_ID = str.encode(ID).hex()    # hex version of student ID
+    script = "6a" + hex_ID + "76a9" + public_key + "88ac"
+
+    outputs = [{'value': 0, 'script_type': "null-data", 'script': script}]
+
+    unsigned_tx = blockcypher.create_unsigned_tx(inputs=inputs, outputs=outputs, 
+                        coin_symbol='btc-testnet', api_key='6e74ffe16f4a4e3fbd13acd5a3d01014')
+
+    print(json.dumps(unsigned_tx, sort_keys=True, indent=4))
+
+    public_keys = [public_key]
+    private_keys = [private_key]
+
+    tx_signatures = blockcypher.make_tx_signatures(txs_to_sign=unsigned_tx['tosign'],\
+        privkey_list=private_keys, pubkey_list=public_keys)
+
+    blockcypher.broadcast_signed_transaction(unsigned_tx=unsigned_tx, signatures=tx_signatures,\
+        pubkeys=public_keys, coin_symbol='btc-testnet', api_key='6e74ffe16f4a4e3fbd13acd5a3d01014')
+
+
+write_ID_transaction('psgg66')
