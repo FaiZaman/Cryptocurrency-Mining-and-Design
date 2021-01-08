@@ -49,13 +49,23 @@ contract SecretLanguage {
         
     }
     
+    
+    // returns vote count of a language only if voting is over
+    function getVoteCount(uint16 languageNum) public view returns (uint _voteCount) {
+        
+        require(isVotingOver(), "You cannot view the vote counts until voting ends.");
+        _voteCount = languages[languageNum].voteCount;
+        
+    }
+    
+    
     // voter registers to vote by paying 1m wei
     // any number of addresses can register
-    function registerToVote() public payable returns (string memory message_) {
+    function registerToVote() public payable {
         
         // check exceptions
         require(msg.value > 1000000, "You must pay 1,000,000 wei to vote.");
-        if (isVotingOver()) return "Voting is over. You can no longer register but you can view the results.";
+        require(!isVotingOver(), "Voting is over. You can no longer register but you can view the results.");
         
         // assign sender and increment their weight if not the chairperson
         Voter storage sender = voters[msg.sender];
@@ -71,9 +81,9 @@ contract SecretLanguage {
         
         // get sender and check for exceptions
         Voter storage sender = voters[msg.sender];
-        if (sender.voted) return "You have already voted.";
-        if (toLanguage >= languages.length) return "Your vote was out of bounds.";
-        if (isVotingOver()) return "Voting is over. You can view the results.";
+        require(!sender.voted, "You have already voted.");
+        require(toLanguage < languages.length, "Your vote was out of bounds.");
+        require(!isVotingOver(), "Voting is over. You can view the results.");
         
         // vote for the language based on sender's weight
         sender.vote = toLanguage;
