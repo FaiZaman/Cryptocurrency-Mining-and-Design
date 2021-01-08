@@ -10,7 +10,7 @@ contract SecretLanguage {
     // struct for programming languages to vote for
     struct Language {
         string name;
-        uint voteCount; // make private?
+        uint voteCount;
     }
     
     // struct for potential voters
@@ -44,7 +44,11 @@ contract SecretLanguage {
     // chairperson changes the name of a language 
     function setName(uint16 _language_num, string memory _name) public {
         
-        require (msg.sender == chairperson, "Only chairperson can change name");
+        require (msg.sender == chairperson, "Only chairperson can change the name.");
+        
+        uint256 numVotes = getTotalVotes();
+        require(numVotes == 0, "You cannot change the name after voting has started.");
+
         languages[_language_num].name = _name;
         
     }
@@ -98,16 +102,13 @@ contract SecretLanguage {
         
     }
     
+    
     // gets the number of votes cast so far and checks if equal to maximum number of votes
     function isVotingOver() private view returns (bool _isOver) {
         
-        uint256 numVotes = 0;
+        uint256 numVotes = getTotalVotes();
         
-        for (uint8 lang_num = 0; lang_num < languages.length; lang_num++) {
-            numVotes += languages[lang_num].voteCount;
-        }
-        
-        if (numVotes >= maxVoters + 1) {    // +1 to offset the vote weight of 2 from the contract creator
+        if (numVotes >= maxVoters + 1) {    // +1 to offset the vote weight of 2 from the chairperson
             return true;
         }
         else {
@@ -117,10 +118,24 @@ contract SecretLanguage {
     }
     
     
+    // counts total number of votes
+    function getTotalVotes() private view returns (uint _numVotes) {
+        
+        uint256 numVotes = 0;
+
+        for (uint8 lang_num = 0; lang_num < languages.length; lang_num++) {
+            numVotes += languages[lang_num].voteCount;
+        }
+        
+        return numVotes;
+        
+    }
+    
+    
     // get the winning language
     function winningLanguage() public view returns (string memory _winningLanguageName) {
         
-        if (!isVotingOver()) return "You cannot view the winner until voting ends.";
+        require(isVotingOver(), "You cannot view the winner until voting ends.");
         uint256 winningVoteCount = 0;
         
         // loop through and replace when a higher vote count is found
