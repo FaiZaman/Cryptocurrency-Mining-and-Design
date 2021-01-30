@@ -1,14 +1,16 @@
 pragma solidity >=0.4.22 <0.7.0;
 // SPDX-License-Identifier: MIT
 
-contract SecretLanguage {
+contract SecretVote {
     
     // state variables
+    bool voting = false;
     
     uint8 maxVoters = 6;    // max number of addresses that can vote
+    uint8 numChoices = 0;
     
     // struct for programming languages to vote for
-    struct Language {
+    struct Choice {
         string name;
         uint voteCount;
     }
@@ -20,10 +22,13 @@ contract SecretLanguage {
         uint8 vote;
     }
     
+    Choice[] private languages;
+    string[] names;
+    uint8 index = 0;
+    
     // create voter-address mappings and languages arrays
     address chairperson;
     mapping(address => Voter) voters;
-    Language[3] private languages;
     
     /// constructor run when voting is initalised
     constructor() payable public {
@@ -32,19 +37,35 @@ contract SecretLanguage {
         chairperson = msg.sender;
         voters[chairperson].weight = 2;
         
-        // assign languages
-        languages[0].name = "Python";
-        languages[1].name = "Java";
-        languages[2].name = "C";
-        
     }
     
     /// functions
+    function setChoices(string memory _name) public {
+        
+        require (msg.sender == chairperson, "Only the chairperson can set the choices.");
+        languages[index].name = _name;
+        index++;
+        
+    }
+    
+    function getChoice(uint16 choiceNum) public view returns (string memory _choice){
+    
+        require(choiceNum < index, "The choice number is out of bounds.");
+        return languages[choiceNum].name;
+        
+    }
+    
+    function initiateVote() private {
+        
+        require (msg.sender == chairperson, "Only the chairperson can start the vote.");
+        voting = true;
+        
+    }
     
     // chairperson changes the name of a language 
     function setName(uint16 _language_num, string memory _name) public {
         
-        require (msg.sender == chairperson, "Only chairperson can change the name.");
+        require (msg.sender == chairperson, "Only the chairperson can change the name.");
         
         uint256 numVotes = getTotalVotes();
         require(numVotes == 0, "You cannot change the name after voting has started.");
