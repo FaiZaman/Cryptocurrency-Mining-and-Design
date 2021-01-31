@@ -1,12 +1,9 @@
 pragma solidity >=0.4.22 <0.7.0;
-pragma experimental ABIEncoderV2;
 // SPDX-License-Identifier: MIT
 
 contract SecretVote {
     
     // state variables
-    bool voting = false;
-    
     uint8 votingTime = 60;    // default length of time in seconds that the users are allowed to vote for
     uint256 startTime = 0;
     uint256 registrationFee = 1000000; // default registration fee
@@ -28,7 +25,8 @@ contract SecretVote {
     Choice[] private choices;
     address chairperson;
     mapping(address => Voter) voters;
-
+    address[] registeredVoters;
+    
     /// constructor run when voting is initalised
     constructor() payable public {
         
@@ -42,9 +40,15 @@ contract SecretVote {
     /// functions
     
     // create new choice based on name and add to array
-    function setChoice(string memory _name) public {
+    function setNewChoice(string memory _name) public {
         
-        require (msg.sender == chairperson, "Only the chairperson can set the choices.");
+        require(msg.sender == chairperson, "Only the chairperson can set the choices.");
+        require(isVotingOver(), "You cannot set a new choice while voting is in progress.");
+
+        for (uint8 choiceNum = 0; choiceNum < choices.length; choiceNum++) {
+            require(keccak256(bytes(choices[choiceNum].name)) != keccak256(bytes(_name)), "This choice already exists.");
+        }
+        
         Choice memory choice = Choice(_name, 0);
         choices.push(choice);
 
@@ -63,16 +67,19 @@ contract SecretVote {
     // sets the length of time for voting phase
     function setVotingTime(uint8 time) public {
         
-        require (msg.sender == chairperson, "Only the chairperson can set the voting time.");
+        require(msg.sender == chairperson, "Only the chairperson can set the voting time.");
+        require(isVotingOver(), "You cannot set the voting time while voting is in progress.");
+
         votingTime = time;
         
     }
     
     
     // sets the registration fee amount
-    function setRegistrationFee(uint256 fee) public {
+    function setFee(uint256 fee) public {
         
-        require (msg.sender == chairperson, "Only the chairperson can set the registration fee.");
+        require(msg.sender == chairperson, "Only the chairperson can set the registration fee.");
+        require(isVotingOver(), "You cannot set the registration fee while voting is in progress.");
         registrationFee = fee;
         
     }
@@ -82,19 +89,29 @@ contract SecretVote {
     function initiateVote() public {
         
         require(msg.sender == chairperson, "Only the chairperson can start the vote.");
-        require(!voting, "There is already a vote in progress.");
+        require(!isVotingOver(), "There is already a vote in progress.");
         require(choices.length > 1, "There must be at least two choices set in order to start a vote.");
-        voting = true;
+        
         startTime = now;
+        
+        // reset weights of registered users to 0
+        for (uint8 i = 0; i < registeredVoters.length; i++){
+            address sender = registeredVoters[i];
+            voters[sender].weight = 0;
+        }
         
     }
     
     
     // allows chairperson to change the name of a choice 
-    function setName(uint16 choiceNum, string memory _name) public {
+    function setChoiceName(uint16 choiceNum, string memory _name) public {
         
         require(msg.sender == chairperson, "Only the chairperson can change the name of a choice.");
-        require(!voting, "You cannot change the name of a choice while voting is in progress.");
+        require(isVotingOver(), "You cannot change the name of a choice while voting is in progress.");
+        
+        for (uint8 i = 0; i < choices.length; choiceNum++) {
+            require(keccak256(bytes(choices[i].name)) != keccak256(bytes(_name)), "This choice name already exists.");
+        }
         
         choices[choiceNum].name = _name;
         
@@ -115,13 +132,15 @@ contract SecretVote {
     function registerToVote() public payable {
         
         Voter storage sender = voters[msg.sender];
-
+        
         require(sender.weight == 0, "You are already registered.");
         require(msg.value > registrationFee, "You must pay 1,000,000 wei to vote.");
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to register.");
         
+        // increment weight and add address to registered voters array
         sender.weight = 1;
-
+        registeredVoters.push(msg.sender);
+        
     }
     
     
