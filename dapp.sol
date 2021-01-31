@@ -1,4 +1,5 @@
 pragma solidity >=0.4.22 <0.7.0;
+pragma experimental ABIEncoderV2;
 // SPDX-License-Identifier: MIT
 
 contract SecretVote {
@@ -6,9 +7,9 @@ contract SecretVote {
     // state variables
     bool voting = false;
     
-    uint8 maxVoters = 6;    // max number of addresses that can vote
-    uint8 numChoices = 0;
-    
+    uint8 votingTime = 60;    // length of time in seconds that the users are allowed to vote for
+    uint256 startTime = 0;
+
     // struct for choices to vote for
     struct Choice {
         string name;
@@ -40,7 +41,7 @@ contract SecretVote {
     /// functions
     
     // create new choice based on name and add to array
-    function setChoices(string memory _name) public {
+    function setChoice(string memory _name) public {
         
         require (msg.sender == chairperson, "Only the chairperson can set the choices.");
         Choice memory choice = Choice(_name, 0);
@@ -49,6 +50,7 @@ contract SecretVote {
     }
     
     
+    // gets the name of the choice at this index
     function getChoice(uint16 choiceNum) public view returns (string memory _choice){
     
         require(choiceNum < choices.length, "The choice number is out of bounds.");
@@ -57,22 +59,24 @@ contract SecretVote {
     }
     
     
-    function initiateVote() private {
+    // initiates the voting phase - users can only vote after this function has been run
+    function initiateVote() public {
         
-        require (msg.sender == chairperson, "Only the chairperson can start the vote.");
+        require(msg.sender == chairperson, "Only the chairperson can start the vote.");
+        require(!voting, "There is already a vote in progress.");
+        require(choices.length > 1, "There must be at least two choices set in order to start a vote.");
         voting = true;
+        startTime = now;
         
     }
     
     
-    // chairperson changes the name of a choice 
+    // allows chairperson to change the name of a choice 
     function setName(uint16 choiceNum, string memory _name) public {
         
-        require (msg.sender == chairperson, "Only the chairperson can change the name.");
+        require(msg.sender == chairperson, "Only the chairperson can change the name of a choice.");
+        require(!voting, "You cannot change the name of a choice while voting is in progress.");
         
-        uint256 numVotes = getTotalVotes();
-        require(numVotes == 0, "You cannot change the name after voting has started.");
-
         choices[choiceNum].name = _name;
         
     }
@@ -81,7 +85,7 @@ contract SecretVote {
     // returns vote count of a choice only if voting is over
     function getVoteCount(uint16 choiceNum) public view returns (uint _voteCount) {
         
-        require(isVotingOver(), "You cannot view the vote counts until voting ends.");
+        require(isVotingOver(), "You cannot view the vote counts while voting is in progress.");
         _voteCount = choices[choiceNum].voteCount;
         
     }
@@ -93,7 +97,7 @@ contract SecretVote {
         
         // check exceptions
         require(msg.value > 1000000, "You must pay 1,000,000 wei to vote.");
-        require(!isVotingOver(), "Voting is over. You can no longer register but you can view the results.");
+        require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to register.");
         
         // assign sender and increment their weight if not the chairperson
         Voter storage sender = voters[msg.sender];
@@ -109,9 +113,9 @@ contract SecretVote {
         
         // get sender and check for exceptions
         Voter storage sender = voters[msg.sender];
+        require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to vote.");
         require(!sender.voted, "You have already voted.");
         require(toChoice < choices.length, "Your vote was out of bounds.");
-        require(!isVotingOver(), "Voting is over. You can view the results.");
         
         // vote for the choice based on sender's weight
         sender.vote = toChoice;
@@ -130,28 +134,14 @@ contract SecretVote {
     // gets the number of votes cast so far and checks if equal to maximum number of votes
     function isVotingOver() private view returns (bool _isOver) {
         
-        uint256 numVotes = getTotalVotes();
+        uint256 endTime = now;
         
-        if (numVotes >= maxVoters + 1) {    // +1 to offset the vote weight of 2 from the chairperson
+        if (endTime - startTime > votingTime) {
             return true;
         }
         else {
             return false;
         }
-        
-    }
-    
-    
-    // counts total number of votes
-    function getTotalVotes() private view returns (uint _numVotes) {
-        
-        uint256 numVotes = 0;
-
-        for (uint8 choiceNum = 0; choiceNum < choices.length; choiceNum++) {
-            numVotes += choices[choiceNum].voteCount;
-        }
-        
-        return numVotes;
         
     }
     
