@@ -7,8 +7,9 @@ contract SecretVote {
     // state variables
     bool voting = false;
     
-    uint8 votingTime = 60;    // length of time in seconds that the users are allowed to vote for
+    uint8 votingTime = 60;    // default length of time in seconds that the users are allowed to vote for
     uint256 startTime = 0;
+    uint256 registrationFee = 1000000; // default registration fee
 
     // struct for choices to vote for
     struct Choice {
@@ -27,13 +28,13 @@ contract SecretVote {
     Choice[] private choices;
     address chairperson;
     mapping(address => Voter) voters;
-    
+
     /// constructor run when voting is initalised
     constructor() payable public {
         
-        // assign chairperson and give them two votes
+        // assign chairperson and give them a vote
         chairperson = msg.sender;
-        voters[chairperson].weight = 2;
+        voters[chairperson].weight = 1;
         
     }
     
@@ -56,6 +57,24 @@ contract SecretVote {
         require(choiceNum < choices.length, "The choice number is out of bounds.");
         return choices[choiceNum].name;
        
+    }
+
+    
+    // sets the length of time for voting phase
+    function setVotingTime(uint8 time) public {
+        
+        require (msg.sender == chairperson, "Only the chairperson can set the voting time.");
+        votingTime = time;
+        
+    }
+    
+    
+    // sets the registration fee amount
+    function setRegistrationFee(uint256 fee) public {
+        
+        require (msg.sender == chairperson, "Only the chairperson can set the registration fee.");
+        registrationFee = fee;
+        
     }
     
     
@@ -95,25 +114,25 @@ contract SecretVote {
     // any number of addresses can register
     function registerToVote() public payable {
         
-        // check exceptions
-        require(msg.value > 1000000, "You must pay 1,000,000 wei to vote.");
+        Voter storage sender = voters[msg.sender];
+
+        require(sender.weight == 0, "You are already registered.");
+        require(msg.value > registrationFee, "You must pay 1,000,000 wei to vote.");
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to register.");
         
-        // assign sender and increment their weight if not the chairperson
-        Voter storage sender = voters[msg.sender];
-        if (sender.weight == 0){    // to prevent chairperson from gaining a third vote by registering
-            sender.weight = 1;
-        }
+        sender.weight = 1;
+
     }
     
     
     // voting
-    // no more than maxVoters can vote
     function vote(uint8 toChoice) public returns (string memory name_) {
         
         // get sender and check for exceptions
         Voter storage sender = voters[msg.sender];
+        
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to vote.");
+        require(sender.weight > 0, "You must be registed in order to vote.");
         require(!sender.voted, "You have already voted.");
         require(toChoice < choices.length, "Your vote was out of bounds.");
         
@@ -121,12 +140,6 @@ contract SecretVote {
         sender.vote = toChoice;
         choices[toChoice].voteCount += sender.weight;
         name_ = choices[toChoice].name;
-        
-        // assign voted if sender has weight, meaning they are registered
-        // otherwise leave as false so they can still vote if they register, after trying to vote while unregistered
-        if (sender.weight > 0){
-            sender.voted = true;
-        }
         
     }
     
