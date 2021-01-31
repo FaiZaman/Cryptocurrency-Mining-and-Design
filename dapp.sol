@@ -4,7 +4,7 @@ pragma solidity >=0.4.22 <0.7.0;
 contract SecretVote {
     
     // state variables
-    uint8 votingTime = 60;    // default length of time in seconds that the users are allowed to vote for
+    uint8 votingTime = 20;    // default length of time in seconds that the users are allowed to vote for
     uint256 startTime = 0;
     uint256 registrationFee = 1000000; // default registration fee
 
@@ -40,10 +40,10 @@ contract SecretVote {
     /// functions
     
     // create new choice based on name and add to array
-    function setNewChoice(string memory _name) public {
+    function addNewChoice(string memory _name) public {
         
-        require(msg.sender == chairperson, "Only the chairperson can set the choices.");
-        require(isVotingOver(), "You cannot set a new choice while voting is in progress.");
+        require(msg.sender == chairperson, "Only the chairperson can add a choice.");
+        require(isVotingOver(), "You cannot add a new choice while voting is in progress.");
 
         for (uint8 choiceNum = 0; choiceNum < choices.length; choiceNum++) {
             require(keccak256(bytes(choices[choiceNum].name)) != keccak256(bytes(_name)), "This choice already exists.");
@@ -55,12 +55,40 @@ contract SecretVote {
     }
     
     
+    // remove a choice from the choices
+    function removeChoice(uint16 choiceNum) public {
+        
+        require(msg.sender == chairperson, "Only the chairperson can remove a choice.");
+        require(choiceNum < choices.length, "The choice number is out of bounds.");
+        
+        // reorders as a consequence of removal
+        choices[choiceNum] = choices[choices.length - 1];
+        choices.pop();
+        
+    }
+    
+    
     // gets the name of the choice at this index
     function getChoice(uint16 choiceNum) public view returns (string memory _choice){
     
         require(choiceNum < choices.length, "The choice number is out of bounds.");
         return choices[choiceNum].name;
        
+    }
+    
+    
+    // allows chairperson to change the name of a choice 
+    function setChoiceName(uint16 choiceNum, string memory _name) public {
+        
+        require(msg.sender == chairperson, "Only the chairperson can change the name of a choice.");
+        require(isVotingOver(), "You cannot change the name of a choice while voting is in progress.");
+        
+        for (uint8 i = 0; i < choices.length; i++) {
+            require(keccak256(bytes(choices[i].name)) != keccak256(bytes(_name)), "This choice name already exists.");
+        }
+        
+        choices[choiceNum].name = _name;
+        
     }
 
     
@@ -89,7 +117,7 @@ contract SecretVote {
     function initiateVote() public {
         
         require(msg.sender == chairperson, "Only the chairperson can start the vote.");
-        require(!isVotingOver(), "There is already a vote in progress.");
+        require(isVotingOver(), "There is already a vote in progress.");
         require(choices.length > 1, "There must be at least two choices set in order to start a vote.");
         
         startTime = now;
@@ -100,21 +128,8 @@ contract SecretVote {
             voters[sender].weight = 0;
         }
         
-    }
-    
-    
-    // allows chairperson to change the name of a choice 
-    function setChoiceName(uint16 choiceNum, string memory _name) public {
-        
-        require(msg.sender == chairperson, "Only the chairperson can change the name of a choice.");
-        require(isVotingOver(), "You cannot change the name of a choice while voting is in progress.");
-        
-        for (uint8 i = 0; i < choices.length; choiceNum++) {
-            require(keccak256(bytes(choices[i].name)) != keccak256(bytes(_name)), "This choice name already exists.");
-        }
-        
-        choices[choiceNum].name = _name;
-        
+        // reset the vote counts of the choices
+
     }
     
     
@@ -151,7 +166,7 @@ contract SecretVote {
         Voter storage sender = voters[msg.sender];
         
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to vote.");
-        require(sender.weight > 0, "You must be registed in order to vote.");
+        require(sender.weight > 0, "You must be registered in order to vote.");
         require(!sender.voted, "You have already voted.");
         require(toChoice < choices.length, "Your vote was out of bounds.");
         
@@ -163,7 +178,7 @@ contract SecretVote {
     }
     
     
-    // gets the number of votes cast so far and checks if equal to maximum number of votes
+    // uses current timestamp to check if the voting time has elapsed
     function isVotingOver() private view returns (bool _isOver) {
         
         uint256 endTime = now;
@@ -189,6 +204,9 @@ contract SecretVote {
             if (choices[choiceNum].voteCount > winningVoteCount) {
                 winningVoteCount = choices[choiceNum].voteCount;
                 winningChoiceName = choices[choiceNum].name;
+            }
+            else if (choices[choiceNum].voteCount == winningVoteCount) {
+                winningChoiceName = string(abi.encodePacked(winningChoiceName, ", ", choices[choiceNum].name));
             }
         }
         
