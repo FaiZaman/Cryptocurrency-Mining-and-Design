@@ -9,7 +9,7 @@ contract SecretVote {
     uint8 maxVoters = 6;    // max number of addresses that can vote
     uint8 numChoices = 0;
     
-    // struct for programming languages to vote for
+    // struct for choices to vote for
     struct Choice {
         string name;
         uint voteCount;
@@ -22,11 +22,8 @@ contract SecretVote {
         uint8 vote;
     }
     
-    Choice[] private languages;
-    string[] names;
-    uint8 index = 0;
-    
-    // create voter-address mappings and languages arrays
+    // create voter-address mappings and choices arrays
+    Choice[] private choices;
     address chairperson;
     mapping(address => Voter) voters;
     
@@ -39,21 +36,26 @@ contract SecretVote {
         
     }
     
+    
     /// functions
+    
+    // create new choice based on name and add to array
     function setChoices(string memory _name) public {
         
         require (msg.sender == chairperson, "Only the chairperson can set the choices.");
-        languages[index].name = _name;
-        index++;
-        
+        Choice memory choice = Choice(_name, 0);
+        choices.push(choice);
+
     }
+    
     
     function getChoice(uint16 choiceNum) public view returns (string memory _choice){
     
-        require(choiceNum < index, "The choice number is out of bounds.");
-        return languages[choiceNum].name;
-        
+        require(choiceNum < choices.length, "The choice number is out of bounds.");
+        return choices[choiceNum].name;
+       
     }
+    
     
     function initiateVote() private {
         
@@ -62,24 +64,25 @@ contract SecretVote {
         
     }
     
-    // chairperson changes the name of a language 
-    function setName(uint16 _language_num, string memory _name) public {
+    
+    // chairperson changes the name of a choice 
+    function setName(uint16 choiceNum, string memory _name) public {
         
         require (msg.sender == chairperson, "Only the chairperson can change the name.");
         
         uint256 numVotes = getTotalVotes();
         require(numVotes == 0, "You cannot change the name after voting has started.");
 
-        languages[_language_num].name = _name;
+        choices[choiceNum].name = _name;
         
     }
     
     
-    // returns vote count of a language only if voting is over
-    function getVoteCount(uint16 languageNum) public view returns (uint _voteCount) {
+    // returns vote count of a choice only if voting is over
+    function getVoteCount(uint16 choiceNum) public view returns (uint _voteCount) {
         
         require(isVotingOver(), "You cannot view the vote counts until voting ends.");
-        _voteCount = languages[languageNum].voteCount;
+        _voteCount = choices[choiceNum].voteCount;
         
     }
     
@@ -102,18 +105,18 @@ contract SecretVote {
     
     // voting
     // no more than maxVoters can vote
-    function vote(uint8 toLanguage) public returns (string memory name_) {
+    function vote(uint8 toChoice) public returns (string memory name_) {
         
         // get sender and check for exceptions
         Voter storage sender = voters[msg.sender];
         require(!sender.voted, "You have already voted.");
-        require(toLanguage < languages.length, "Your vote was out of bounds.");
+        require(toChoice < choices.length, "Your vote was out of bounds.");
         require(!isVotingOver(), "Voting is over. You can view the results.");
         
-        // vote for the language based on sender's weight
-        sender.vote = toLanguage;
-        languages[toLanguage].voteCount += sender.weight;
-        name_ = languages[toLanguage].name;
+        // vote for the choice based on sender's weight
+        sender.vote = toChoice;
+        choices[toChoice].voteCount += sender.weight;
+        name_ = choices[toChoice].name;
         
         // assign voted if sender has weight, meaning they are registered
         // otherwise leave as false so they can still vote if they register, after trying to vote while unregistered
@@ -144,8 +147,8 @@ contract SecretVote {
         
         uint256 numVotes = 0;
 
-        for (uint8 lang_num = 0; lang_num < languages.length; lang_num++) {
-            numVotes += languages[lang_num].voteCount;
+        for (uint8 choiceNum = 0; choiceNum < choices.length; choiceNum++) {
+            numVotes += choices[choiceNum].voteCount;
         }
         
         return numVotes;
@@ -153,22 +156,21 @@ contract SecretVote {
     }
     
     
-    // get the winning language
-    function winningLanguage() public view returns (string memory _winningLanguageName) {
+    // get the winning choice
+    function winningChoice() public view returns (string memory winningChoiceName) {
         
         require(isVotingOver(), "You cannot view the winner until voting ends.");
         uint256 winningVoteCount = 0;
         
         // loop through and replace when a higher vote count is found
-        
-        for (uint8 lang_num = 0; lang_num < languages.length; lang_num++) {
-            if (languages[lang_num].voteCount > winningVoteCount) {
-                winningVoteCount = languages[lang_num].voteCount;
-                _winningLanguageName = languages[lang_num].name;
+        for (uint8 choiceNum = 0; choiceNum < choices.length; choiceNum++) {
+            if (choices[choiceNum].voteCount > winningVoteCount) {
+                winningVoteCount = choices[choiceNum].voteCount;
+                winningChoiceName = choices[choiceNum].name;
             }
         }
         
-        return _winningLanguageName;
+        return winningChoiceName;
         
     }
     
