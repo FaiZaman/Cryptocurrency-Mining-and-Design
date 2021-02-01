@@ -8,7 +8,7 @@ contract SecretVote {
     uint256 startTime = 0;
     uint256 registrationFee = 1000000; // default registration fee
     bool voteInitiated;
-
+    
     // struct for choices to vote for
     struct Choice {
         string name;
@@ -111,6 +111,17 @@ contract SecretVote {
         require(msg.sender == chairperson, "Only the chairperson can set the registration fee.");
         require(isVotingOver(), "You cannot set the registration fee while voting is in progress.");
         registrationFee = fee;
+        
+    }
+    
+    
+    // transfer the ownership of the contract to another users
+    function transferOwnership(address _address) public {
+        
+        require(msg.sender == chairperson, "Only the chairperson can set the registration fee.");
+        require(isVotingOver(), "You cannot change the ownership of the contract while voting is in progress.");
+        
+        chairperson = _address;
         
     }
     
