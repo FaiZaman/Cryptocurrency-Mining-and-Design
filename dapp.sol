@@ -7,6 +7,7 @@ contract SecretVote {
     uint8 votingTime = 20;    // default length of time in seconds that the users are allowed to vote for
     uint256 startTime = 0;
     uint256 registrationFee = 1000000; // default registration fee
+    bool voteInitiated;
 
     // struct for choices to vote for
     struct Choice {
@@ -16,7 +17,7 @@ contract SecretVote {
     
     // struct for potential voters
     struct Voter {
-        uint weight;
+        bool registered;
         bool voted;
         uint8 vote;
     }
@@ -32,7 +33,8 @@ contract SecretVote {
         
         // assign chairperson and give them a vote
         chairperson = msg.sender;
-        voters[chairperson].weight = 1;
+        voters[chairperson].registered = true;
+        registeredVoters.push(msg.sender);
         
     }
     
@@ -122,14 +124,20 @@ contract SecretVote {
         
         startTime = now;
         
-        // reset weights of registered users to 0
+        // reset attributes of registered and voted users to false
         for (uint8 i = 0; i < registeredVoters.length; i++){
             address sender = registeredVoters[i];
-            voters[sender].weight = 0;
+            voters[sender].registered = false;
+            voters[sender].voted = false;
         }
         
-        // reset the vote counts of the choices
-
+        // reset the vote counts of the choices to 0
+        for (uint8 choiceNum = 0; choiceNum < choices.length; choiceNum++) {
+            choices[choiceNum].voteCount = 0;
+        }
+        
+        voteInitiated = true;
+        
     }
     
     
@@ -148,12 +156,12 @@ contract SecretVote {
         
         Voter storage sender = voters[msg.sender];
         
-        require(sender.weight == 0, "You are already registered.");
+        require(!sender.registered, "You are already registered.");
         require(msg.value > registrationFee, "You must pay 1,000,000 wei to vote.");
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to register.");
         
-        // increment weight and add address to registered voters array
-        sender.weight = 1;
+        // update registered attribute and add address to registered voters array
+        sender.registered = true;
         registeredVoters.push(msg.sender);
         
     }
@@ -166,15 +174,19 @@ contract SecretVote {
         Voter storage sender = voters[msg.sender];
         
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to vote.");
-        require(sender.weight > 0, "You must be registered in order to vote.");
+        require(sender.registered, "You must be registered in order to vote.");
         require(!sender.voted, "You have already voted.");
         require(toChoice < choices.length, "Your vote was out of bounds.");
         
-        // vote for the choice based on sender's weight
-        sender.vote = toChoice;
-        choices[toChoice].voteCount += sender.weight;
-        name_ = choices[toChoice].name;
+        // vote for the choice
+        choices[toChoice].voteCount += 1;
         
+        // update sender attributes and return
+        sender.vote = toChoice;
+        sender.voted = true;
+        
+        name_ = choices[toChoice].name;
+
     }
     
     
@@ -197,6 +209,8 @@ contract SecretVote {
     function winningChoice() public view returns (string memory winningChoiceName) {
         
         require(isVotingOver(), "You cannot view the winner until voting ends.");
+        require(voteInitiated, "You cannot view the winner when a vote has not occured.");
+        
         uint256 winningVoteCount = 0;
         
         // loop through and replace when a higher vote count is found
