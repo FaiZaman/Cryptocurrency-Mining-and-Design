@@ -4,7 +4,7 @@ pragma solidity >=0.4.22 <0.7.0;
 contract SecretVote {
     
     // state variables
-    uint8 votingTime = 20;    // default length of time in seconds that the users are allowed to vote for
+    uint8 votingTime = 60;    // default length of time in seconds that the users are allowed to vote for
     uint256 startTime = 0;
     uint256 registrationFee = 1000000; // default registration fee
     bool voteInitiated;
@@ -19,7 +19,7 @@ contract SecretVote {
     struct Voter {
         bool registered;
         bool voted;
-        uint8 vote;
+        bytes32 vote;
     }
     
     // create voter-address mappings and choices arrays
@@ -116,7 +116,7 @@ contract SecretVote {
     
     
     // transfer the ownership of the contract to another users
-    function transferOwnership(address _address) public {
+    function changeOwner(address _address) public {
         
         require(msg.sender == chairperson, "Only the chairperson can set the registration fee.");
         require(isVotingOver(), "You cannot change the ownership of the contract while voting is in progress.");
@@ -152,15 +152,6 @@ contract SecretVote {
     }
     
     
-    // returns vote count of a choice only if voting is over
-    function getVoteCount(uint16 choiceNum) public view returns (uint _voteCount) {
-        
-        require(isVotingOver(), "You cannot view the vote counts while voting is in progress.");
-        _voteCount = choices[choiceNum].voteCount;
-        
-    }
-    
-    
     // voter registers to vote by paying 1m wei
     // any number of addresses can register
     function registerToVote() public payable {
@@ -178,26 +169,41 @@ contract SecretVote {
     }
     
     
-    // voting
-    function vote(uint8 toChoice) public returns (string memory name_) {
+    // takes hash of nonce + vote and stores as voter's vote
+    function commitVote(bytes32 voteHash) public {
         
         // get sender and check for exceptions
         Voter storage sender = voters[msg.sender];
         
-        require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to vote.");
-        require(sender.registered, "You must be registered in order to vote.");
+        require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to commit your vote.");
+        require(sender.registered, "You must be registered in order to commit your vote.");
         require(!sender.voted, "You have already voted.");
-        require(toChoice < choices.length, "Your vote was out of bounds.");
-        
-        // vote for the choice
-        choices[toChoice].voteCount += 1;
-        
+
         // update sender attributes and return
-        sender.vote = toChoice;
+        sender.vote = voteHash;
         sender.voted = true;
         
-        name_ = choices[toChoice].name;
-
+    }
+    
+    
+    // check the hash of input nonce and index against stored hash
+    function confirmVote(string memory nonce, string memory stringVoteIndex, uint256 intVoteIndex) public {
+        
+        Voter storage sender = voters[msg.sender];
+        require(isVotingOver(), "You cannot confirm your vote until voting ends.");
+        require(sender.voted, "You must have already voted in order to confirm your vote.");
+        
+        // concatenate nonce and vote, and hash
+        string memory toHash = string(abi.encodePacked(nonce, stringVoteIndex));
+        bytes32 confirmVoteHash = keccak256(bytes(toHash));
+        
+        // confirm that hashes are equal and increments vote count
+        bytes32 committedVoteHash = sender.vote;
+        require(committedVoteHash == confirmVoteHash, 
+        "Either the nonce or the vote (or both) were not recognised and your vote was not confirmed.");
+        
+        choices[intVoteIndex].voteCount += 1;
+        
     }
     
     
@@ -212,6 +218,17 @@ contract SecretVote {
         else {
             return false;
         }
+        
+    }
+    
+    
+    // returns vote count of a choice only if voting is over
+    function getVoteCount(uint16 choiceNum) public view returns (string memory _name, uint _voteCount) {
+        
+        require(isVotingOver(), "You cannot view the vote counts while voting is in progress.");
+        
+        _name = choices[choiceNum].name;
+        _voteCount = choices[choiceNum].voteCount;
         
     }
     
