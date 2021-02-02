@@ -58,7 +58,7 @@ contract SecretVote {
     }
     
     
-    // remove a choice from the choices
+    // remove a choice from the choices - requirement 1
     function removeChoice(uint16 choiceNum) public {
         
         require(msg.sender == chairperson, "Only the chairperson can remove a choice.");
@@ -67,6 +67,21 @@ contract SecretVote {
         // reorders as a consequence of removal
         choices[choiceNum] = choices[choices.length - 1];
         choices.pop();
+        
+    }
+    
+    
+    // resets the choice array
+    function resetChoices() public {
+        
+        require(msg.sender == chairperson, "Only the chairperson can reset the choices.");
+        require(isVotingOver(), "You cannot reset the choices while voting is in progress.");
+        require(choices.length > 0, "There are no choices to reset.");
+        
+        uint256 length = choices.length;
+        for (uint8 i = 0; i < length; i++){
+            choices.pop();
+        }
         
     }
     
@@ -80,7 +95,7 @@ contract SecretVote {
     }
     
     
-    // allows chairperson to change the name of a choice 
+    // allows chairperson to change the name of a choice
     function setChoiceName(uint16 choiceNum, string memory _name) public {
         
         require(msg.sender == chairperson, "Only the chairperson can change the name of a choice.");
@@ -207,7 +222,7 @@ contract SecretVote {
     
     
     // check the hash of input nonce and index against stored hash
-    // users cannot see the votes until voting is over and these votes are confirmed - requirement 3
+    // prevents users from voting multiple times - requirement 2
     function confirmVote(string memory nonce, string memory stringVoteIndex, uint256 intVoteIndex) public {
         
         Voter storage sender = voters[msg.sender];
@@ -238,9 +253,9 @@ contract SecretVote {
     // uses current timestamp to check if the voting time has elapsed
     function isVotingOver() public view returns (bool isOver) {
         
-        uint256 endTime = now;
+        uint256 currentTime = now;
         
-        if (endTime - startTime > votingTime) {
+        if (currentTime - startTime > votingTime) {
             return true;
         }
         else {
@@ -250,8 +265,20 @@ contract SecretVote {
     }
     
     
+    // returns the amount of time left in the current voting phase. if no voting phase active, returns -1
+    function votingTimeLeft() public view returns (uint256 _time) {
+        
+        if (isVotingOver()) {
+            return 0;
+        }
+        
+        return votingTime - (now - startTime);
+        
+    }
+    
+    
     // returns vote count of a choice only if voting is over
-    // users cannot see the results until voting is over - requirment 3
+    // users cannot see the results until voting is over - requirement 3
     function getVoteCount(uint16 choiceNum) public view returns (string memory _name, uint _voteCount) {
         
         require(isVotingOver(), "You cannot view the vote counts while voting is in progress.");
