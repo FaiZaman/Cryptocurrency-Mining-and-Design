@@ -5,9 +5,11 @@ contract SecretVote {
     
     // state variables
     uint8 votingTime = 60;    // default length of time in seconds that the users are allowed to vote for
-    uint256 startTime = 0;
+    uint256 startTime;
     uint256 registrationFee = 1000000; // default registration fee
     bool voteInitiated;
+    uint8 numCommits;   // number of committed votes
+    uint8 numConfirms;  // number of confirmed votes
     
     // struct for choices to vote for
     struct Choice {
@@ -40,7 +42,7 @@ contract SecretVote {
     
     /// functions
     
-    // create new choice based on name and add to array
+    // specify new choice based on name and add to array - requirement 1
     function addNewChoice(string memory _name) public {
         
         require(msg.sender == chairperson, "Only the chairperson can add a choice.");
@@ -136,14 +138,17 @@ contract SecretVote {
     }
     
     
-    // initiates the voting phase - users can only vote after this function has been run
+    // owner of the contract initiates the voting phase between a number of choices - requirement 1
     function initiateVote() public {
         
         require(msg.sender == chairperson, "Only the chairperson can start the vote.");
         require(isVotingOver(), "There is already a vote in progress.");
         require(choices.length > 1, "There must be at least two choices set in order to start a vote.");
         
+        // reset state variables
         startTime = now;
+        numCommits = 0;
+        numConfirms = 0;
         
         // reset attributes of registered and voted users
         for (uint8 i = 0; i < registeredVoters.length; i++){
@@ -164,7 +169,7 @@ contract SecretVote {
     }
     
     
-    // voter registers to vote by paying 1m wei
+    // user registers to vote by paying a registration fee - requirement 2
     // any number of addresses can register
     function registerToVote() public payable {
         
@@ -182,6 +187,8 @@ contract SecretVote {
     
     
     // takes hash of nonce + vote and stores as voter's vote
+    // prevents users from voting multiple times - requirement 2
+    // hash prevents everyone from seeing the vote during voting phase - requirement 3 
     function commitVote(bytes32 voteHash) public {
         
         // get sender and check for exceptions
@@ -191,14 +198,16 @@ contract SecretVote {
         require(sender.registered, "You must be registered in order to commit your vote.");
         require(!sender.voted, "You have already committed your vote.");
         
-        // update sender attributes and return
+        // update sender attributes and increment number of commits
         sender.vote = voteHash;
         sender.voted = true;
+        numCommits++;
         
     }
     
     
     // check the hash of input nonce and index against stored hash
+    // users cannot see the votes until voting is over and these votes are confirmed - requirement 3
     function confirmVote(string memory nonce, string memory stringVoteIndex, uint256 intVoteIndex) public {
         
         Voter storage sender = voters[msg.sender];
@@ -217,8 +226,11 @@ contract SecretVote {
         "Either the nonce or the vote (or both) were not recognised and your vote was not confirmed.");
         
         require(intVoteIndex < choices.length, "The choice number is out of bounds. Your vote is invalid and will not be counted.");
+        
+        // update vote count and sender attributes and increment number of confirms
         choices[intVoteIndex].voteCount += 1;
         sender.confirmed = true;
+        numConfirms++;
         
     }
     
@@ -239,6 +251,7 @@ contract SecretVote {
     
     
     // returns vote count of a choice only if voting is over
+    // users cannot see the results until voting is over - requirment 3
     function getVoteCount(uint16 choiceNum) public view returns (string memory _name, uint _voteCount) {
         
         require(isVotingOver(), "You cannot view the vote counts while voting is in progress.");
@@ -251,10 +264,12 @@ contract SecretVote {
     
     
     // get the winning choice
+    // result of the vote is viewable to everyone after everyone has voted - requirement 4
     function winningChoice() public view returns (string memory winningChoiceName) {
         
         require(isVotingOver(), "You cannot view the winner until voting ends.");
         require(voteInitiated, "You cannot view the winner when a vote has not occured.");
+        require(numCommits == numConfirms, "All users must confirm their vote before you can view the winner.");
         
         uint256 winningVoteCount = 0;
         
