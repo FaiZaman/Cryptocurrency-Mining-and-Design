@@ -19,6 +19,7 @@ contract SecretVote {
     struct Voter {
         bool registered;
         bool voted;
+        bool confirmed;
         bytes32 vote;
     }
     
@@ -33,9 +34,7 @@ contract SecretVote {
         
         // assign chairperson and give them a vote
         chairperson = msg.sender;
-        voters[chairperson].registered = true;
-        registeredVoters.push(msg.sender);
-        
+
     }
     
     
@@ -84,7 +83,9 @@ contract SecretVote {
         
         require(msg.sender == chairperson, "Only the chairperson can change the name of a choice.");
         require(isVotingOver(), "You cannot change the name of a choice while voting is in progress.");
+        require(choiceNum < choices.length, "The choice number is out of bounds.");
         
+        // ensure no choice exists with same name
         for (uint8 i = 0; i < choices.length; i++) {
             require(keccak256(bytes(choices[i].name)) != keccak256(bytes(_name)), "This choice name already exists.");
         }
@@ -115,6 +116,15 @@ contract SecretVote {
     }
     
     
+    // gets the voting time and the registration fee
+    function getProperties() public view returns (uint8 _votingTimeSeconds, uint256 _registrationFeeWei) {
+        
+        _votingTimeSeconds = votingTime;
+        _registrationFeeWei = registrationFee;
+        
+    }
+    
+    
     // transfer the ownership of the contract to another users
     function changeOwner(address _address) public {
         
@@ -135,11 +145,13 @@ contract SecretVote {
         
         startTime = now;
         
-        // reset attributes of registered and voted users to false
+        // reset attributes of registered and voted users
         for (uint8 i = 0; i < registeredVoters.length; i++){
             address sender = registeredVoters[i];
             voters[sender].registered = false;
             voters[sender].voted = false;
+            voters[sender].confirmed = false;
+            voters[sender].vote = "";
         }
         
         // reset the vote counts of the choices to 0
@@ -158,9 +170,9 @@ contract SecretVote {
         
         Voter storage sender = voters[msg.sender];
         
-        require(!sender.registered, "You are already registered.");
-        require(msg.value > registrationFee, "You must pay 1,000,000 wei to vote.");
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to register.");
+        require(msg.value > registrationFee, "You must pay the correct fee to vote. Please check this amount using getProperties()");
+        require(!sender.registered, "You are already registered.");
         
         // update registered attribute and add address to registered voters array
         sender.registered = true;
@@ -177,8 +189,8 @@ contract SecretVote {
         
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to commit your vote.");
         require(sender.registered, "You must be registered in order to commit your vote.");
-        require(!sender.voted, "You have already voted.");
-
+        require(!sender.voted, "You have already committed your vote.");
+        
         // update sender attributes and return
         sender.vote = voteHash;
         sender.voted = true;
@@ -190,8 +202,10 @@ contract SecretVote {
     function confirmVote(string memory nonce, string memory stringVoteIndex, uint256 intVoteIndex) public {
         
         Voter storage sender = voters[msg.sender];
+        
         require(isVotingOver(), "You cannot confirm your vote until voting ends.");
         require(sender.voted, "You must have already voted in order to confirm your vote.");
+        require(!sender.confirmed, "You have already confirmed your vote.");
         
         // concatenate nonce and vote, and hash
         string memory toHash = string(abi.encodePacked(nonce, stringVoteIndex));
@@ -199,16 +213,18 @@ contract SecretVote {
         
         // confirm that hashes are equal and increments vote count
         bytes32 committedVoteHash = sender.vote;
-        require(committedVoteHash == confirmVoteHash, 
+        require(committedVoteHash == confirmVoteHash,
         "Either the nonce or the vote (or both) were not recognised and your vote was not confirmed.");
         
+        require(intVoteIndex < choices.length, "The choice number is out of bounds. Your vote is invalid and will not be counted.");
         choices[intVoteIndex].voteCount += 1;
+        sender.confirmed = true;
         
     }
     
     
     // uses current timestamp to check if the voting time has elapsed
-    function isVotingOver() private view returns (bool _isOver) {
+    function isVotingOver() public view returns (bool isOver) {
         
         uint256 endTime = now;
         
@@ -226,6 +242,7 @@ contract SecretVote {
     function getVoteCount(uint16 choiceNum) public view returns (string memory _name, uint _voteCount) {
         
         require(isVotingOver(), "You cannot view the vote counts while voting is in progress.");
+        require(choiceNum < choices.length, "The choice number is out of bounds.");
         
         _name = choices[choiceNum].name;
         _voteCount = choices[choiceNum].voteCount;
