@@ -63,12 +63,10 @@ def compute_hit_value():
 
 	print(signature.hex())
 	# hash the result
-	total_hit_value = hashlib.sha256(hashlib.sha256(signature).digest()).hexdigest()
+	total_hit_value = hashlib.sha256(signature).hexdigest()
 
 	# take the first 8 bytes and convert to integer for easy comparison against target
 	hit_value = total_hit_value[:16]
-	print(hex_hit_value)
-
 	hit_value = int(total_hit_value[:16], 16)
 
 	return hit_value
@@ -90,5 +88,6 @@ while True:
 
 	time_since_last_block += 1
 
-print(hit_value, target)
+print(hit_value)
+print(hex(hit_value))
 print(time_since_last_block)
