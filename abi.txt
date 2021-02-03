@@ -1,50 +1,68 @@
 [
 	{
 		"inputs": [],
-		"name": "registerToVote",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint16",
-				"name": "_language_num",
-				"type": "uint16"
-			},
-			{
-				"internalType": "string",
-				"name": "_name",
-				"type": "string"
-			}
-		],
-		"name": "setName",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
 		"stateMutability": "payable",
 		"type": "constructor"
 	},
 	{
 		"inputs": [
 			{
-				"internalType": "uint8",
-				"name": "toLanguage",
-				"type": "uint8"
-			}
-		],
-		"name": "vote",
-		"outputs": [
-			{
 				"internalType": "string",
-				"name": "name_",
+				"name": "_name",
 				"type": "string"
 			}
 		],
+		"name": "addNewChoice",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_address",
+				"type": "address"
+			}
+		],
+		"name": "changeOwner",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "voteHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "commitVote",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "nonce",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "stringVoteIndex",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "intVoteIndex",
+				"type": "uint256"
+			}
+		],
+		"name": "confirmVote",
+		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
@@ -52,12 +70,54 @@
 		"inputs": [
 			{
 				"internalType": "uint16",
-				"name": "languageNum",
+				"name": "choiceNum",
+				"type": "uint16"
+			}
+		],
+		"name": "getChoice",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "_choice",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getProperties",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "_votingTimeSeconds",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_registrationFeeWei",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "choiceNum",
 				"type": "uint16"
 			}
 		],
 		"name": "getVoteCount",
 		"outputs": [
+			{
+				"internalType": "string",
+				"name": "_name",
+				"type": "string"
+			},
 			{
 				"internalType": "uint256",
 				"name": "_voteCount",
@@ -69,11 +129,115 @@
 	},
 	{
 		"inputs": [],
-		"name": "winningLanguage",
+		"name": "initiateVote",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "isVotingOver",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "isOver",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "registerToVote",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "choiceNum",
+				"type": "uint16"
+			}
+		],
+		"name": "removeChoice",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "resetChoices",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "choiceNum",
+				"type": "uint16"
+			},
+			{
+				"internalType": "string",
+				"name": "_name",
+				"type": "string"
+			}
+		],
+		"name": "setChoiceName",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "fee",
+				"type": "uint256"
+			}
+		],
+		"name": "setFee",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "time",
+				"type": "uint256"
+			}
+		],
+		"name": "setVotingTime",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "votingTimeLeft",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "_time",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "winningChoice",
 		"outputs": [
 			{
 				"internalType": "string",
-				"name": "_winningLanguageName",
+				"name": "winningChoiceName",
 				"type": "string"
 			}
 		],

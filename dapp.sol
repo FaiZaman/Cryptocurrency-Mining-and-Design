@@ -4,7 +4,7 @@ pragma solidity >=0.4.22 <0.7.0;
 contract SecretVote {
     
     // state variables
-    uint8 votingTime = 60;    // default length of time in seconds that the users are allowed to vote for
+    uint256 votingTime = 420;    // default length of time in seconds that the users are allowed to vote for
     uint256 startTime;
     uint256 registrationFee = 1000000; // default registration fee
     bool voteInitiated;
@@ -31,10 +31,9 @@ contract SecretVote {
     mapping(address => Voter) voters;
     address[] registeredVoters;
     
-    /// constructor run when voting is initalised
+    /// constructor run when voting is initalised to assign chairperson
     constructor() payable public {
         
-        // assign chairperson and give them a vote
         chairperson = msg.sender;
 
     }
@@ -52,7 +51,7 @@ contract SecretVote {
             require(keccak256(bytes(choices[choiceNum].name)) != keccak256(bytes(_name)), "This choice already exists.");
         }
         
-        Choice memory choice = Choice(_name, 0);
+        Choice memory choice = Choice(_name, 0);    // vote count initalised as 0
         choices.push(choice);
 
     }
@@ -62,6 +61,7 @@ contract SecretVote {
     function removeChoice(uint16 choiceNum) public {
         
         require(msg.sender == chairperson, "Only the chairperson can remove a choice.");
+        require(isVotingOver(), "You cannot remove a choice while voting is in progress");
         require(choiceNum < choices.length, "The choice number is out of bounds.");
         
         // reorders as a consequence of removal
@@ -113,7 +113,7 @@ contract SecretVote {
 
     
     // sets the length of time for voting phase
-    function setVotingTime(uint8 time) public {
+    function setVotingTime(uint256 time) public {
         
         require(msg.sender == chairperson, "Only the chairperson can set the voting time.");
         require(isVotingOver(), "You cannot set the voting time while voting is in progress.");
@@ -134,7 +134,7 @@ contract SecretVote {
     
     
     // gets the voting time and the registration fee
-    function getProperties() public view returns (uint8 _votingTimeSeconds, uint256 _registrationFeeWei) {
+    function getProperties() public view returns (uint256 _votingTimeSeconds, uint256 _registrationFeeWei) {
         
         _votingTimeSeconds = votingTime;
         _registrationFeeWei = registrationFee;
