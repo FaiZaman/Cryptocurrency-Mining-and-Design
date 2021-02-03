@@ -12,7 +12,7 @@ block_header = {'height': 1478503,
                 'time': 1550603039.882228,
                 'bits': 437239872,
                 'nonce': 0,  # change this - it should still be an int
-                'coinbase_addr': 'psgg66', #change this field of the block to student ID
+                'coinbase_addr': 'psgg66', # change this field of the block to student ID
                 'n_tx': 2,
                 'mrkl_root': '69224771b7a2ed554b28857ed85a94b088dc3d89b53c2127bfc5c16ff49da229',
                 'txids': [
@@ -21,10 +21,11 @@ block_header = {'height': 1478503,
                     ],
                 'depth': 0}
 
-# (65535 * 100) -> hex = new difficulty (0.001)
-difficulty = "00000000FFFF0000000000000000000000000000000000000000000000000000"
-new_diffic = "000003E7FC180000000000000000000000000000000000000000000000000000"     # 22 leading
-target_zeroes = 22
+# 00000000FFFF = 65535 (decimal)
+# 65535 * 1000 -> hex = new difficulty (0.001)
+difficulty     = "00000000FFFF0000000000000000000000000000000000000000000000000000"
+new_difficulty = hex(int(difficulty, 16) * 1000)
+target = int(new_difficulty, 16)
 
 # Simplified conversion of block header into bytes:
 #block_serialised = json.dumps(block_header, sort_keys=True).encode()
@@ -33,28 +34,7 @@ target_zeroes = 22
 #block_hash = hashlib.sha256(hashlib.sha256(block_serialised).digest()).hexdigest()
 #print('Hash with nonce ' + str(block_header['nonce']) + ': ' + block_hash)
 
-
-# calculates the number of leading zeroes in a given hexadecimal string
-def get_leading_zeros(hex):
-
-    zeroes = 0
-    scale = 16
-
-    for i in hex:
-        if i == '0':
-            zeroes += 4
-        else:
-
-            binary = bin(int(hex, scale)).zfill(4)[2:]
-
-            for j in binary:
-                if j == '0':
-                    zeroes += 1
-                else:
-                    return zeroes
-
 nonce = 0
-
 start = time.time()
 
 # loop and try hashing nonces in increasing order (1, 2, 3, ...)
@@ -65,17 +45,15 @@ while True:
     block_serialised = json.dumps(block_header, sort_keys=True).encode()
     block_hash = hashlib.sha256(hashlib.sha256(block_serialised).digest()).hexdigest()
 
-    # compute number of leading zeroes in hash
-    zeroes = get_leading_zeros(block_hash)
-
-    if zeroes > target_zeroes:     # current target - break if hit
-        print('Number of zeroes: ' + str(zeroes))
+    # compute current value of hash
+    current_value = int(block_hash, 16)
+    if current_value < target:     # current target - break if hit
         print('Hash with nonce ' + str(block_header['nonce']) + ': ' + block_hash)
         break
 
     nonce += 1
 
-# nonce: 11344153
+# nonce: 2046895
 
 end = time.time()
 time_taken = end - start
