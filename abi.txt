@@ -33,6 +33,30 @@
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "choices",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "name",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "voteCount",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "bytes32",
 				"name": "voteHash",
 				"type": "bytes32"
@@ -62,69 +86,14 @@
 			}
 		],
 		"name": "confirmVote",
-		"outputs": [],
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "description",
+				"type": "string"
+			}
+		],
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint16",
-				"name": "choiceNum",
-				"type": "uint16"
-			}
-		],
-		"name": "getChoice",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "_choice",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getProperties",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "_votingTimeSeconds",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_registrationFeeWei",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint16",
-				"name": "choiceNum",
-				"type": "uint16"
-			}
-		],
-		"name": "getVoteCount",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "_name",
-				"type": "string"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_voteCount",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -152,6 +121,19 @@
 		"name": "registerToVote",
 		"outputs": [],
 		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "registrationFee",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -216,6 +198,19 @@
 		"name": "setVotingTime",
 		"outputs": [],
 		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "votingTime",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{

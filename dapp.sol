@@ -1,15 +1,18 @@
 pragma solidity >=0.4.22 <0.7.0;
 // SPDX-License-Identifier: MIT
 
-contract SecretVote {
+contract SecretVoting {
     
     // state variables
-    uint256 votingTime = 420;    // default length of time in seconds that the users are allowed to vote for
+    
+    // public so users can view them
+    uint256 public votingTime = 420;    // default length of time in seconds that the users are allowed to vote for
+    uint256 public registrationFee = 1000000; // default registration fee
+    
     uint256 startTime;
-    uint256 registrationFee = 1000000; // default registration fee
     bool voteInitiated;
-    uint8 numCommits;   // number of committed votes
-    uint8 numConfirms;  // number of confirmed votes
+    uint256 numCommits;   // number of committed votes
+    uint256 numConfirms;  // number of confirmed votes
     
     // struct for choices to vote for
     struct Choice {
@@ -26,7 +29,7 @@ contract SecretVote {
     }
     
     // create voter-address mappings and choices arrays
-    Choice[] private choices;
+    Choice[] public choices;
     address chairperson;
     mapping(address => Voter) voters;
     address[] registeredVoters;
@@ -35,7 +38,7 @@ contract SecretVote {
     constructor() payable public {
         
         chairperson = msg.sender;
-
+        
     }
     
     
@@ -46,14 +49,14 @@ contract SecretVote {
         
         require(msg.sender == chairperson, "Only the chairperson can add a choice.");
         require(isVotingOver(), "You cannot add a new choice while voting is in progress.");
-
+        
         for (uint8 choiceNum = 0; choiceNum < choices.length; choiceNum++) {
             require(keccak256(bytes(choices[choiceNum].name)) != keccak256(bytes(_name)), "This choice already exists.");
         }
         
         Choice memory choice = Choice(_name, 0);    // vote count initalised as 0
         choices.push(choice);
-
+        
     }
     
     
@@ -86,15 +89,6 @@ contract SecretVote {
     }
     
     
-    // gets the name of the choice at this index
-    function getChoice(uint16 choiceNum) public view returns (string memory _choice){
-    
-        require(choiceNum < choices.length, "The choice number is out of bounds.");
-        return choices[choiceNum].name;
-       
-    }
-    
-    
     // allows chairperson to change the name of a choice
     function setChoiceName(uint16 choiceNum, string memory _name) public {
         
@@ -110,7 +104,7 @@ contract SecretVote {
         choices[choiceNum].name = _name;
         
     }
-
+    
     
     // sets the length of time for voting phase
     function setVotingTime(uint256 time) public {
@@ -129,15 +123,6 @@ contract SecretVote {
         require(msg.sender == chairperson, "Only the chairperson can set the registration fee.");
         require(isVotingOver(), "You cannot set the registration fee while voting is in progress.");
         registrationFee = fee;
-        
-    }
-    
-    
-    // gets the voting time and the registration fee
-    function getProperties() public view returns (uint256 _votingTimeSeconds, uint256 _registrationFeeWei) {
-        
-        _votingTimeSeconds = votingTime;
-        _registrationFeeWei = registrationFee;
         
     }
     
@@ -191,7 +176,7 @@ contract SecretVote {
         Voter storage sender = voters[msg.sender];
         
         require(!isVotingOver(), "There is currently no vote in progress. Please wait until the next vote begins to register.");
-        require(msg.value > registrationFee, "You must pay the correct fee to vote. Please check this amount using getProperties()");
+        require(msg.value > registrationFee, "You must pay the correct fee to vote. Please check this amount by calling registrationFee.");
         require(!sender.registered, "You are already registered.");
         
         // update registered attribute and add address to registered voters array
@@ -223,7 +208,7 @@ contract SecretVote {
     
     // check the hash of input nonce and index against stored hash
     // prevents users from voting multiple times - requirement 2
-    function confirmVote(string memory nonce, string memory stringVoteIndex, uint256 intVoteIndex) public {
+    function confirmVote(string memory nonce, string memory stringVoteIndex, uint256 intVoteIndex) public returns (string memory description) {
         
         Voter storage sender = voters[msg.sender];
         
@@ -240,7 +225,11 @@ contract SecretVote {
         require(committedVoteHash == confirmVoteHash,
         "Either the nonce or the vote (or both) were not recognised and your vote was not confirmed.");
         
-        require(intVoteIndex < choices.length, "The choice number is out of bounds. Your vote is invalid and will not be counted.");
+        if (intVoteIndex >= choices.length) {
+            sender.confirmed = true;
+            numConfirms++;
+            return "The choice number is out of bounds. Your vote is invalid and will not be counted.";
+        }
         
         // update vote count and sender attributes and increment number of confirms
         choices[intVoteIndex].voteCount += 1;
@@ -273,19 +262,6 @@ contract SecretVote {
         }
         
         return votingTime - (now - startTime);
-        
-    }
-    
-    
-    // returns vote count of a choice only if voting is over
-    // users cannot see the results until voting is over - requirement 3
-    function getVoteCount(uint16 choiceNum) public view returns (string memory _name, uint _voteCount) {
-        
-        require(isVotingOver(), "You cannot view the vote counts while voting is in progress.");
-        require(choiceNum < choices.length, "The choice number is out of bounds.");
-        
-        _name = choices[choiceNum].name;
-        _voteCount = choices[choiceNum].voteCount;
         
     }
     
